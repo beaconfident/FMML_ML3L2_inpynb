@@ -1,0 +1,518 @@
+FOUNDATIONS OF MODERN MACHINE LEARNING, IIIT Hyderabad
+MODULE 3: CLASSIFICATION-1
+LAB-2 : Implementing KNN from scratch and visualize Algorithm performance
+Module Coordinator: Jashn Arora
+Section 1: Implementing KNN
+In the last lab we had started discussing about KNN or K Nearest Neighbour method for clasification. We used the pre-built scikit-learn library for KNN. Now let's see how to implement this algorithm from scratch
+
+
+[ ]
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn import preprocessing
+from collections import Counter
+
+[ ]
+def predict(X_train, y_train, X_test, k):
+    distances = []
+    targets = []
+
+    for i in range(len(X_train)):
+        # compute and store L2 distance
+        distances.append([np.sqrt(np.sum(np.square(X_test - X_train[i, :]))), i])
+
+    distances = sorted(distances)
+
+    for i in range(k):
+        index = distances[i][1]
+        targets.append(y_train[index])
+
+    # return most common target
+    return Counter(targets).most_common(1)[0][0]
+
+[ ]
+def k_nearest_neighbor(X_train, y_train, X_test, k):
+
+    assert k <= len(X_train), "[!] K cannot be larger than number of samples."
+
+    # loop over all observations
+    predictions = []
+    for i in range(len(X_test)):
+        predictions.append(predict(X_train, y_train, X_test[i, :], k))
+
+    return np.asarray(predictions)
+Note : If k = 1 then the algorithm will simply return the label of the nearest neighbour. When we give k > 1 the most common label out of the given labels in the k neighbours will be selected.The code for 1 NN is given as follows and does not have to be so complicated.
+
+
+[ ]
+def NN1(traindata, trainlabel, query):
+  diff  = traindata - query  # find the difference between features. Numpy automatically takes care of the size here
+  sq = diff*diff # square the differences
+  dist = sq.sum(1) # add up the squares
+  label = trainlabel[np.argmin(dist)] # our predicted label is the label of the training data which has the least distance from the query
+  return label
+Let us define a metric 'Accuracy' to see how good our learning algorithm is. Accuracy is the ratio of the number of correctly classified samples to the total number of samples. The higher the accuracy, the better the algorithm.
+
+
+[ ]
+def Accuracy(gtlabel, predlabel):
+  assert len(gtlabel)==len(predlabel), "Length of the groundtruth labels and predicted labels should be the same"
+  correct = (gtlabel==predlabel).sum() # count the number of times the groundtruth label is equal to the predicted label.
+  return correct/len(gtlabel)
+Section 1.1 - Iris Dataset
+Let's try it out on Iris Dataset present in the scikit learn library
+
+
+[ ]
+from sklearn.datasets import load_iris
+
+data = load_iris()
+
+df = pd.DataFrame(data=data.data, columns=data.feature_names)
+
+df["target"] = data.target
+
+df.head()
+
+
+[ ]
+X = np.array(df[['sepal length (cm)','sepal width (cm)','petal length (cm)','petal width (cm)']])
+y = np.array(df['target'])
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=17)
+
+[ ]
+# Making our predictions
+predictions = k_nearest_neighbor(X_train, y_train, X_test, 7)
+
+# evaluating accuracy
+accuracy = Accuracy(y_test, predictions)
+print("The accuracy of our classifier is {} %".format(100*accuracy))
+The accuracy of our classifier is 94.0 %
+Voila! You have implemented your own version of the K-Nearest Neighbours algorithm, which works very well on the Iris Dataset. Congratulations!
+
+Now try out the sklearn implementation and compare your results.
+
+
+[ ]
+from sklearn.neighbors import KNeighborsClassifier
+
+sklearn_knn = KNeighborsClassifier(n_neighbors=7)
+sklearn_knn.fit(X_train,y_train)
+sklearn_predictions = sklearn_knn.predict(X_test)
+accuracy = accuracy_score(y_test, sklearn_predictions)
+print("The accuracy of Sklearn classifier is {} %".format(100*accuracy))
+The accuracy of Sklearn classifier is 94.0 %
+Section 1.2: Weighted NN
+For KNN, If k is too small, the algorithm would be more sensitive to outliers. If k is too large, then the neighborhood may include too many points from other classes. We also take the label with max votes in the neighbourhood. Another choice can be that instead of giving equal weights to each of the neighbours we can give weighted points in the neighbourhood. So we weigh points by the inverse of their distance. Therefore, closer points will be given a higher priority as compared to the far off points.
+
+An easy way to implement this is by specifying the 'weights' parameter as distance when defining the sklearn KNN function. For more information go through this site
+
+
+[ ]
+## TASK
+## Modify the KNN function you wrote to return all the K-nearest neighbours along with their distances,
+## instead of just the output that was most common. You don't need to find out accuracy, just modify the function
+## and return the k-nearest neighbours and distances.
+Section 2: Visualizing Data
+We will look into something called Voronoi diagrams.
+
+Note: Ideally, we should perform data visualization to see what the data looks like before we apply any Machine Learning algorithm. Only for the purpose of this lab session, we're explaining it after you've applied KNN.
+
+Voronoi Diagrams
+In simple terms, Voronoi diagrams help you to visualize the dataset by partioning the plane into regions that are close to a given set of points. These regions are also called Voronoi cells.
+
+Note that the cells/regions depend on the Distance metric being used. One way of interpreting this is by understanding that the distance metric decides the degree to which a 'point' or 'seed' in the Voronoi diagram has influence. For each seed there is a corresponding region, called a Voronoi cell, consisting of all points of the plane closer to that seed than to any other.
+
+This link provides a wonderful illustration of Voronoi plots for 20 points in two cases: (1) Using Euclidean distance, and (2) Using Manhattan distance.
+
+Since our Iris data is 4-dimensional (as it has 4 attributes), we need to convert into a form that can be represented in 2-D.
+
+While there are methods to visualize data higher than 2-dimensions, that is beyond scope for now.
+
+For simplicity, we just take the first two columns of the iris dataset attributes and observe the Voronoi diagram generated for that.
+Alternatively, one can also perform PCA (Principal Component Analysis), to reduce the 4D data to just two dimensions.
+
+Plotting Voronoi regions
+
+[ ]
+
+[ ]
+## Plotting Voronoi regions for the Iris dataset
+
+points = []
+xpts = np.array(df['sepal length (cm)'])
+ypts = np.array(df['sepal width (cm)'])
+for i in range(len(xpts)):
+  points.append([xpts[i],ypts[i]])
+# print(points)
+points = np.array(points)
+# compute Voronoi tesselation
+vor = Voronoi(points)
+
+regions, vertices = voronoi_finite_polygons_2d(vor)
+
+for region in regions:
+    polygon = vertices[region]
+    plt.fill(*zip(*polygon), alpha=0.4)
+
+plt.plot(points[:,0], points[:,1], 'ko')
+plt.xlim(vor.min_bound[0] - 0.1, vor.max_bound[0] + 0.1)
+plt.ylim(vor.min_bound[1] - 0.1, vor.max_bound[1] + 0.1)
+
+plt.show()
+
+Section 2.2: Understanding Decision Boundaries
+So you have seen the Voronoi diagram of the dataset, implemented KNN, and also seen your algorithm's performance in terms of accuracy? Impressive!
+Wouldn't it also be great to know how exactly these 'votes' or neighbours are decided through some kind of visualization?
+
+Decision Boundary
+While the Voronoi diagram gave us a good idea of the points present in our dataset, to understand how KNN performed on our dataset we can plot decision boundaries. Decision boundaries, as the name suggests, divide the plane into different regions of classification.
+
+Note that here again, for simplicity, we have only considered first two attributes of the DataFrame (ie, Sepal Length and Sepal Width).
+
+
+[ ]
+from matplotlib.colors import ListedColormap
+import seaborn as sns
+
+
+def decision_boundary_plot(x_dec,y_dec,k):
+  h = .02  # step size in the mesh
+
+  # Create color maps
+  n = len(set(y_dec))
+  cmap_light = ListedColormap(['pink', 'green', 'cyan','yellow'][:n])
+  cmap_bold = ['pink', 'darkgreen', 'blue','yellow'][:n]
+
+  for weights in ['uniform', 'distance']:
+      # we create an instance of Neighbours Classifier and fit the data.
+      clf = KNeighborsClassifier(n_neighbors=k, weights=weights)
+      clf.fit(x_dec, y_dec)
+
+      # Plot the decision boundary. For that, we will assign a color to each
+      # point in the mesh [x_min, x_max]x[y_min, y_max].
+      x_min, x_max = x_dec[:, 0].min() - 1, x_dec[:, 0].max() + 1
+      y_min, y_max = x_dec[:, 1].min() - 1, x_dec[:, 1].max() + 1
+      xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                          np.arange(y_min, y_max, h))
+      Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+
+      # Put the result into a color plot
+      Z = Z.reshape(xx.shape)
+      plt.figure(figsize=(8, 6))
+      plt.contourf(xx, yy, Z, cmap=cmap_light)
+
+      # Plot also the training points
+      sns.scatterplot(x=x_dec[:, 0], y=x_dec[:, 1], hue=y_dec,
+                      palette=cmap_bold, alpha=1.0, edgecolor="black")
+      plt.xlim(xx.min(), xx.max())
+      plt.ylim(yy.min(), yy.max())
+      plt.title("Multi-Classification (k = %i, weights = '%s')"% (k, weights))
+
+  plt.show()
+
+
+[ ]
+x_pts = X[:,:2]
+y_pts = y
+decision_boundary_plot(x_pts,y_pts,7)
+
+
+[ ]
+## TASK-2
+## In the above cells, we saw the Voronoi diagram of the data and plotted the KNN decision boundaries
+## by only considering two attributes of the dataset. You must be already familiar with PCA.
+## Apply PCA on the dataset above to reduce it to two dimensions.
+## Plot the Voronoi diagram and Decision boundaries after that.
+Section 2.3: Confusion Matrix
+In classification problems, a confusion matrix, also known as an error matrix, is a table that allows visualization of the performance of an algorithm, typically a supervised learning one. Each row of the matrix represents the instances in an actual class while each column represents the instances in a predicted class.
+
+
+[ ]
+from sklearn.metrics import confusion_matrix
+
+[ ]
+# print(confusion_matrix(y_test,predictions))
+pd.crosstab(y_test, predictions, rownames=['True'], colnames=['Predicted'], margins=True)
+
+
+[ ]
+from sklearn import metrics
+
+cnf_matrix = metrics.confusion_matrix(y_test, predictions)
+p = sns.heatmap(pd.DataFrame(cnf_matrix), annot=True, cmap="viridis" ,fmt='g')
+plt.title('Confusion matrix', y=1.1)
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
+
+Section 2.4: Classification Report
+Precision, Recall, and F1-Score are other metrics besides accuracy that one might look for in an algorithm. Depending on the use-case, one might consider one metric more important than the other.
+
+Note: T-> True, F->False, P->Positive, N->Negative
+
+Mathematically, Accuracy is :
+
+Accuracy=TP+TNTP+TN+FP+FN
+
+Precision: The accuracy of positive predictions
+
+Precision=TPTP+FP
+
+Recall:Fraction of positives that were correctly identified
+
+Recall=TPTP+FN
+
+F1-score: Harmonic mean of precision and recall
+
+F1=2∗Precision∗RecallPrecision+Recall=2∗TP2∗TP+FP+FN
+
+
+[ ]
+#import classification_report
+from sklearn.metrics import classification_report
+print(classification_report(y_test,predictions))
+              precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00        13
+           1       0.88      1.00      0.94        22
+           2       1.00      0.80      0.89        15
+
+    accuracy                           0.94        50
+   macro avg       0.96      0.93      0.94        50
+weighted avg       0.95      0.94      0.94        50
+
+Car Evaluation Dataset
+
+[ ]
+# Upload the Car evaluation data CSV file that has been shared with you.
+# Run this cell, click on the 'Choose files' button and upload the file.
+from google.colab import files
+uploaded = files.upload()
+
+
+[ ]
+car_df = pd.read_csv('car_evaluation.csv')
+car_df
+
+
+[ ]
+for x in car_df.columns:
+  # print(x)
+  le = preprocessing.LabelEncoder()
+  le.fit(car_df[x])
+  car_df[x]=le.transform(car_df[x])
+
+car_df
+
+
+[ ]
+dataset = car_df.values
+X = dataset[:,0:6]
+y = np.array(dataset[:,6])
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=19)
+
+[ ]
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(X_train, y_train)
+predictions = knn.predict(X_test)
+score = accuracy_score(y_test, predictions)
+print("The accuracy of the classifier on Car evaluation dataset is {:.2f} %".format(100*score))
+The accuracy of the classifier on Car evaluation dataset is 89.88 %
+
+[ ]
+## TASK-3
+## Plot a Confusion Matrix for the results of the Car evaluation dataset
+
+[ ]
+## TASK-4
+## Print a Classification Report for the results of the Car evaluation dataset
+
+[ ]
+## TASK-5
+## Plot the Decision boundary diagram for the classifier of the Car evaluation dataset
+
+[ ]
+## TASK-6
+## Plot the Voronoi diagram for the classifier of the Car evaluation dataset
+Questions to Think About and Answer
+In the section on Decision boundaries, you must have seen that we ran the KNN algorithm twice: first with the weights set to 'uniform' and then set to 'distance'. Find out the difference between these two.
+What do you think could be the drawbacks of using KNN ?
+Difference Between 'Uniform' and 'Distance' Weights in KNN
+In the k-Nearest Neighbors (KNN) algorithm, the classification or regression of a new data point is determined by the 
+𝑘
+k closest training data points. The weights parameter in KNN affects how these 
+𝑘
+k neighbors contribute to the final decision. Here are the differences between 'uniform' and 'distance' weights:
+
+Uniform Weights:
+
+Definition: When weights are set to 'uniform', all 
+𝑘
+k nearest neighbors contribute equally to the final decision, regardless of their distances from the query point.
+Formula: The contribution of each neighbor is the same. If you are predicting the class of a point, each of the 
+𝑘
+k neighbors gets one vote.
+𝑓
+(
+𝑥
+)
+=
+1
+𝑘
+∑
+𝑖
+=
+1
+𝑘
+𝑦
+𝑖
+f(x)= 
+k
+1
+​
+  
+i=1
+∑
+k
+​
+ y 
+i
+​
+ 
+Example: If the 3 nearest neighbors of a point have the classes [0, 1, 1], the class predicted would be the one with the majority, which is 1.
+Distance Weights:
+
+Definition: When weights are set to 'distance', closer neighbors contribute more to the final decision than farther neighbors. The weight of each neighbor is inversely proportional to its distance from the query point.
+Formula: The contribution of each neighbor is weighted by the inverse of its distance.
+𝑓
+(
+𝑥
+)
+=
+∑
+𝑖
+=
+1
+𝑘
+𝑦
+𝑖
+𝑑
+(
+𝑥
+,
+𝑥
+𝑖
+)
+∑
+𝑖
+=
+1
+𝑘
+1
+𝑑
+(
+𝑥
+,
+𝑥
+𝑖
+)
+f(x)= 
+∑ 
+i=1
+k
+​
+  
+d(x,x 
+i
+​
+ )
+1
+​
+ 
+∑ 
+i=1
+k
+​
+  
+d(x,x 
+i
+​
+ )
+y 
+i
+​
+ 
+​
+ 
+​
+ 
+where 
+𝑑
+(
+𝑥
+,
+𝑥
+𝑖
+)
+d(x,x 
+i
+​
+ ) is the distance between the query point 
+𝑥
+x and the 
+𝑖
+i-th neighbor 
+𝑥
+𝑖
+x 
+i
+​
+ .
+Example: If the 3 nearest neighbors of a point have distances [0.1, 0.2, 0.5] and classes [0, 1, 1], the classes would be weighted more towards the closer points, likely resulting in a class prediction of 1.
+Drawbacks of Using KNN
+Computationally Intensive:
+
+High Memory Usage: KNN stores all training data, which can be memory-intensive for large datasets.
+Slow Predictions: Each prediction requires computing distances between the query point and all points in the training set, which can be slow, especially with large datasets and high-dimensional data.
+Sensitive to Irrelevant Features and Noise:
+
+Feature Scaling: KNN is sensitive to the scale of the data, so features with larger scales can dominate the distance calculations. Proper feature scaling (e.g., normalization) is necessary.
+Noise Sensitivity: Noisy data points can significantly affect the prediction since they may be considered as neighbors, especially if 
+𝑘
+k is small.
+Choice of 
+𝑘
+k:
+
+Determining Optimal 
+𝑘
+k: The performance of KNN heavily depends on the choice of 
+𝑘
+k. A small 
+𝑘
+k can lead to overfitting (high variance), while a large 
+𝑘
+k can lead to underfitting (high bias). Finding the optimal 
+𝑘
+k often requires cross-validation.
+Imbalanced Data:
+
+Class Imbalance: If the classes are imbalanced, the majority class can dominate the predictions. For example, if one class is much more frequent than others, the predictions will be biased towards the majority class.
+Curse of Dimensionality:
+
+High Dimensional Data: In high-dimensional spaces, the concept of distance becomes less meaningful. Points tend to be equidistant from each other due to the curse of dimensionality, which degrades the performance of KNN.
+Summary
+Uniform vs. Distance Weights: 'Uniform' weights treat all neighbors equally, while 'distance' weights give more influence to closer neighbors.
+Drawbacks: KNN can be computationally intensive, sensitive to irrelevant features and noise, dependent on the choice of 
+𝑘
+k, affected by imbalanced data, and less effective in high-dimensional spaces. Proper preprocessing, parameter tuning, and consideration of dataset characteristics are crucial for effective KNN application.
+
+
+
+
+
+
+Useful Resources for further reading
+Interactive KNN visualization, with class boundaries: http://vision.stanford.edu/teaching/cs231n-demos/knn/
